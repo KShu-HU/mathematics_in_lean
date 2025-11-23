@@ -6,17 +6,23 @@ Authors: Katabami Shu, Patrick Massot
 
 import Mathlib.Algebra.Group.Defs
 import Mathlib.Algebra.GroupWithZero.Defs
+import Mathlib.Algebra.Ring.Pi
 import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Tactic.Spread
-import Mathlib.Util.AssertExists
-import Mathlib.Tactic.StacksAttribute
 import Mathlib.Data.Int.Basic
 import Mathlib.Data.Fin.Basic
 import Mathlib.Data.Fintype.Basic
-import Mathlib.Algebra.Ring.Pi
+import Mathlib.Algebra.Polynomial.Basic
+import Mathlib.Algebra.RingQuot
+import Mathlib.RingTheory.Ideal.Basic
+import Mathlib.RingTheory.Ideal.Quotient.Basic
+import Mathlib.RingTheory.Ideal.Quotient.Defs
+import Mathlib.RingTheory.Ideal.Quotient.Operations
+import Mathlib.Tactic.Spread
+import Mathlib.Tactic.StacksAttribute
+import Mathlib.Util.AssertExists
 
---Ringを構成しているclassを導入
-
+--Ringを構成しているclass
+--証明にあたってはimportのみで十分
 /-
 class Distrib (R : Type*) extends Mul R, Add R where
   protected left_distrib : ∀ a b c : R, a * (b + c) = a * b + a * c
@@ -35,6 +41,7 @@ class Ring (R : Type u) extends Semiring R, AddCommGroup R, AddGroupWithOne R
 -/
 
 --ここからℤ[√5]の構成
+--Mathlib.Data.Int.Basicによってℤの性質が利用可能
 
 structure ZRootFive where
     re : ℤ
@@ -103,8 +110,6 @@ instance : Ring ZRootFive where
     add_assoc := by
       intros a b c
       ext <;> simp [ZRootFive.add_def, add_assoc]
-      case h₁ => exact Int.add_assoc a.re b.re c.re
-      case h₂ => exact Int.add_assoc a.im b.im c.im
   --a+0=0+a=a
     zero_add := by
       intro a
@@ -274,10 +279,8 @@ instance : Ring ZRootFive where
       ext
       case h₁ =>
         simp [ZRootFive.mul_def]
-        rw [Int.add_left_neg]
       case h₂ =>
         simp [ZRootFive.mul_def]
-        rw [Int.add_left_neg]
 
 --以上に追加して可換であることを示せばℤ[√5]はCommRing
 
@@ -306,22 +309,162 @@ instance : CommMagma ZRootFive :=
 }
 
 --ZRootFiveが可換であることはCommMagmaであることから直ちに従う
+--inferInstanceは対象としているclassについて型推論を行い、任意の値を合成する
 instance : CommRing ZRootFive where
   toRing := (by infer_instance : Ring ZRootFive)
   mul_comm := by
     intros a b
     rw [mul_comm]
 
+end ZRootFive
+
 --次に、ℤ³[√5]がRingであることを示す
 --ℤ[√5]と同様に示すと計算量が膨大に->証明済みのℤ[√5]を利用して証明
 
 --(0, 1, 2)の添字に(x₀, x₁, x₂)と割り当てて数字の組を作る。この数字の組をZRootFive3として定義
+--演算は各成分ごとにℤ[√5]の演算を行うもの
 
 def ZRootFive3 := Fin 3 → ZRootFive
+-- (a, b, c)|a,b,c ∈ ℤ[√5]
 
 /-Fin 3に与えられた値がそれぞれCommRingの値であれば、
 各部分でCommRingであるため像もCommRingであることを@Pi.commRingが示している-/
 
-/-inferInstanceは対象としているclassについて型推論を行い、任意の値を合成する-/
 instance : CommRing ZRootFive3 :=
   @Pi.commRing (Fin 3) (fun _ => ZRootFive) (fun _ => inferInstance)
+
+/- ℤ[x]/(x^3 - 5) ↓-/
+/- ℤ[³√5] = a + b³√5 + c³√(5^2) -/
+
+--ℤ[³√5]の構造を定義
+structure ZRF3 where
+  a : Int
+  b : Int
+  c : Int
+deriving Repr, DecidableEq, Inhabited, BEq
+
+namespace ZRF3
+
+--ℤ[³√5]の演算を定義
+instance add_ZRF3 (x y : ZRF3) : ZRF3 :=
+  ⟨x.a + y.a, x.b + y.b, x.c + y.c⟩
+
+instance mul_ZRF3 (x y : ZRF3) : ZRF3 :=
+  ⟨x.a * y.a + 5 * (x.b * y.c + x.c * y.b),
+   x.a * y.b + x.b * y.a + 5 * x.c * y.c,
+   x.a * y.c + x.b * y.b + x.c * y.a⟩
+
+instance : Zero ZRF3 := ⟨⟨0,0,0⟩⟩
+instance : One ZRF3 := ⟨⟨1,0,0⟩⟩
+instance : Neg ZRF3 := ⟨λ x => ⟨-x.a, -x.b, -x.c⟩⟩
+instance : Add ZRF3 := ⟨add_ZRF3⟩
+instance : Mul ZRF3 := ⟨mul_ZRF3⟩
+
+@[simp]
+theorem add_assoc_a (x y z : ZRF3) :
+  x.a + y.a + z.a = x.a + (y.a + z.a) := by
+    rw [Int.add_assoc]
+@[simp]
+theorem add_assoc_b (x y z : ZRF3) :
+  x.b + y.b + z.b = x.b + (y.b + z.b) := by
+    rw [Int.add_assoc]
+@[simp]
+theorem add_assoc_c (x y z : ZRF3) :
+  x.c + y.c + z.c = x.c + (y.c + z.c) := by
+    rw [Int.add_assoc]
+
+@[simp]
+theorem add_comm_a (x y : ZRF3) :
+  x.a + y.a = y.a + x.a := by
+    rw [Int.add_comm]
+@[simp]
+theorem add_comm_b (x y : ZRF3) :
+  x.b + y.b = y.b + x.b := by
+    rw [Int.add_comm]
+@[simp]
+theorem add_comm_c (x y : ZRF3) :
+  x.c + y.c = y.c + x.c := by
+    rw [Int.add_comm]
+
+@[simp]
+theorem mul_assoc_a (x y z : ZRF3) :
+  x.a * y.a * z.a = x.a * (y.a * z.a) := by
+    rw [Int.mul_assoc]
+@[simp]
+theorem mul_assoc_b (x y z : ZRF3) :
+  x.b * y.b * z.b = x.b * (y.b * z.b) := by
+    rw [Int.mul_assoc]
+@[simp]
+theorem mul_assoc_c (x y z : ZRF3) :
+  x.c * y.c * z.c = x.c * (y.c * z.c) := by
+    rw [Int.mul_assoc]
+
+@[simp]
+theorem mul_comm_a (x y : ZRF3) :
+  x.a * y.a = y.a * x.a := by
+    rw [Int.mul_comm]
+@[simp]
+theorem mul_comm_b (x y : ZRF3) :
+  x.b * y.b = y.b * x.b := by
+    rw [Int.mul_comm]
+@[simp]
+theorem mul_comm_c (x y : ZRF3) :
+  x.c * y.c = y.c * x.c := by
+    rw [Int.mul_comm]
+
+@[ext]
+theorem ext_ZRF3 (x y : ZRF3) (h1 : x.a = y.a)
+  (h2 : x.b = y.b) (h3 : x.c = y.c): x = y := by
+    cases x
+    cases y
+    simp_all
+
+theorem ext_ZRF3_a (x y : ZRF3) (h : x = y)
+  : x.a + y.a = (x + y).a := by
+    cases x
+    cases y
+
+
+instance : CommRing ZRF3 where
+  add_assoc := by
+    intro x y z
+    ext
+    case h1 => simp
+
+
+
+--ここからℤ[x]/(x³-5)を作る
+open Polynomial
+notation "ℤ[X]" => Polynomial ℤ
+
+noncomputable def x3_min_5 : ℤ[X] :=
+  X^3 - 5
+
+--x³-5がℤ[x]のイデアルを生成
+noncomputable def I_x3_min_5 : Ideal (ℤ[X]) :=
+  Ideal.span {x3_min_5}
+
+--ℤ[x]/(x³-5)の型を設定
+def ZX_mod_x3_min_5 : Type := ℤ[X] ⧸ I_x3_min_5
+
+--ℤ[x]/(x³-5)が環(特に可換環)であること
+noncomputable instance CommRing_ZX_mod_x3_min_5 :
+    CommRing ZX_mod_x3_min_5 :=
+  Ideal.Quotient.commRing I_x3_min_5
+
+--ℤ[x]の元をℤ[x]/(x³-5)に移す操作
+noncomputable def α : ZX_mod_x3_min_5 :=
+  Ideal.Quotient.mk _ Polynomial.X
+
+--f : ℤ³[√5] ∋ v → α ∈ ℤ[x]/(x³-5)を定義
+--v = a + b(³√5) + c(³√5)² を a + bα + cα² と対応付け
+noncomputable def f (v : ZRF3) : ZX_mod_x3_min_5 :=
+  v.a + v.b * α + v.c * (α^2)
+
+--fが環準同型であることの証明
+set_option diagnostics true
+lemma f_Hom : RingHom ZRF3 ZX_mod_x3_min_5 := sorry
+--ZRF3がNonAssocSemiringとみなされていない
+
+--ℤ[³√5]がℤ[x]/(x³-5)と同型であることの証明(準同型定理)
+end ZRF3
