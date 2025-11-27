@@ -361,9 +361,20 @@ instance : Add ZRF3 := ⟨add_ZRF3⟩
 instance : Mul ZRF3 := ⟨mul_ZRF3⟩
 
 @[simp]
+theorem add_ZRF3_ele (x y : ZRF3) : x + y =
+  ⟨x.a + y.a, x.b + y.b, x.c + y.c⟩ := by rfl
+
+@[simp]
+theorem mul_ZRF3_ele (x y : ZRF3) : x * y =
+  ⟨x.a * y.a + 5 * (x.b * y.c + x.c * y.b),
+   x.a * y.b + x.b * y.a + 5 * x.c * y.c,
+   x.a * y.c + x.b * y.b + x.c * y.a⟩ := by rfl
+
+@[simp]
 theorem add_assoc_a (x y z : ZRF3) :
-  x.a + y.a + z.a = x.a + (y.a + z.a) := by
+x.a + y.a + z.a = x.a + (y.a + z.a) := by
     rw [Int.add_assoc]
+
 @[simp]
 theorem add_assoc_b (x y z : ZRF3) :
   x.b + y.b + z.b = x.b + (y.b + z.b) := by
@@ -418,18 +429,47 @@ theorem ext_ZRF3 (x y : ZRF3) (h1 : x.a = y.a)
     cases x
     cases y
     simp_all
-
-theorem ext_ZRF3_a (x y : ZRF3) (h : x = y)
-  : x.a + y.a = (x + y).a := by
-    cases x
-    cases y
-
+/-
+@[ext]
+theorem ext_ZRF3_a (x y : ZRF3) : x.a + y.a = (x + y).a := by
+  let z := x + y
+  have za1 : z.a = x.a + y.a := by rfl
+  have za2 : z.a = (x + y).a := by rfl
+  rw [za1]
+-/
 
 instance : CommRing ZRF3 where
   add_assoc := by
     intro x y z
     ext
-    case h1 => simp
+    simp
+    simp
+    simp
+  zero_add := by
+    intro x
+    ext
+    simp
+    rfl
+  add_zero := by
+    intro x
+    ext
+    simp
+    rfl
+  nsmul := by exact nsmulRec
+  add_comm := by
+    intro x y
+    ext
+    simp
+  left_distrib := by
+    intro x y z
+    ext
+    simp
+  right_distrib := by
+    intro x y z
+  zero_mul := by
+    intro x
+    ext
+
 
 
 
