@@ -360,6 +360,8 @@ instance : Neg ZRF3 := ⟨λ x => ⟨-x.a, -x.b, -x.c⟩⟩
 instance : Add ZRF3 := ⟨add_ZRF3⟩
 instance : Mul ZRF3 := ⟨mul_ZRF3⟩
 
+--simpで定義を含めて呼び出すようにする
+
 @[simp]
 theorem add_ZRF3_ele (x y : ZRF3) : x + y =
   ⟨x.a + y.a, x.b + y.b, x.c + y.c⟩ := by rfl
@@ -370,11 +372,13 @@ theorem mul_ZRF3_ele (x y : ZRF3) : x * y =
    x.a * y.b + x.b * y.a + 5 * x.c * y.c,
    x.a * y.c + x.b * y.b + x.c * y.a⟩ := by rfl
 
+--証明に使用するsimpをすべて構成
+--成分ごとにしてしまえばℤなので、ℤのsimpで一括で証明をしたい
+
 @[simp]
 theorem add_assoc_a (x y z : ZRF3) :
 x.a + y.a + z.a = x.a + (y.a + z.a) := by
     rw [Int.add_assoc]
-
 @[simp]
 theorem add_assoc_b (x y z : ZRF3) :
   x.b + y.b + z.b = x.b + (y.b + z.b) := by
@@ -397,31 +401,7 @@ theorem add_comm_c (x y : ZRF3) :
   x.c + y.c = y.c + x.c := by
     rw [Int.add_comm]
 
-@[simp]
-theorem mul_assoc_a (x y z : ZRF3) :
-  x.a * y.a * z.a = x.a * (y.a * z.a) := by
-    rw [Int.mul_assoc]
-@[simp]
-theorem mul_assoc_b (x y z : ZRF3) :
-  x.b * y.b * z.b = x.b * (y.b * z.b) := by
-    rw [Int.mul_assoc]
-@[simp]
-theorem mul_assoc_c (x y z : ZRF3) :
-  x.c * y.c * z.c = x.c * (y.c * z.c) := by
-    rw [Int.mul_assoc]
-
-@[simp]
-theorem mul_comm_a (x y : ZRF3) :
-  x.a * y.a = y.a * x.a := by
-    rw [Int.mul_comm]
-@[simp]
-theorem mul_comm_b (x y : ZRF3) :
-  x.b * y.b = y.b * x.b := by
-    rw [Int.mul_comm]
-@[simp]
-theorem mul_comm_c (x y : ZRF3) :
-  x.c * y.c = y.c * x.c := by
-    rw [Int.mul_comm]
+--成分ごとの分解
 
 @[ext]
 theorem ext_ZRF3 (x y : ZRF3) (h1 : x.a = y.a)
@@ -429,6 +409,8 @@ theorem ext_ZRF3 (x y : ZRF3) (h1 : x.a = y.a)
     cases x
     cases y
     simp_all
+
+--和の成分と成分の和が等価であること(必要なら証明)
 /-
 @[ext]
 theorem ext_ZRF3_a (x y : ZRF3) : x.a + y.a = (x + y).a := by
@@ -438,40 +420,52 @@ theorem ext_ZRF3_a (x y : ZRF3) : x.a + y.a = (x + y).a := by
   rw [za1]
 -/
 
+--各成分に対する計算をsimpを用いて一括で終了させる
 instance : CommRing ZRF3 where
   add_assoc := by
     intro x y z
-    ext
-    simp
-    simp
-    simp
+    ext <;> simp
   zero_add := by
     intro x
-    ext
-    simp
-    rfl
+    ext <;> simp <;> rfl
   add_zero := by
     intro x
-    ext
-    simp
-    rfl
+    ext <;> simp <;> rfl
   nsmul := by exact nsmulRec
   add_comm := by
     intro x y
-    ext
-    simp
+    ext <;> simp
+/-
   left_distrib := by
     intro x y z
-    ext
-    simp
+    ext <;> simp <;> rfl
   right_distrib := by
     intro x y z
+    ext <;> simp <;> rfl
   zero_mul := by
     intro x
-    ext
-
-
-
+    ext <;> simp <;> rfl
+  mul_zero := by
+    intro x
+    ext <;> simp <;> rfl
+  mul_assoc := by
+    intro x y z
+    ext <;> simp <;> rfl
+  one_mul := by
+    intro x
+    ext <;> simp <;> rfl
+  mul_one := by
+    intro x
+    ext <;> simp <;> rfl
+  zsmul := by
+    ext <;> simp <;> rfl
+  neg_add_cancel := by
+    intro x
+    ext <;> simp <;> rfl
+  mul_comm := by
+    intro x y
+    ext <;> simp <;> rfl
+-/
 
 --ここからℤ[x]/(x³-5)を作る
 open Polynomial
